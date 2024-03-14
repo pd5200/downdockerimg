@@ -1,0 +1,32 @@
+name: Upload Docker Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      docker_address:
+        description: 'Docker address'
+        required: true
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Set up Docker
+        uses: docker/setup-action@v2
+
+      - name: Get Docker image
+        run: docker pull ${{ github.event.inputs.docker_address }}
+
+      - name: Compress Docker image
+        run: |
+          docker save ${{ github.event.inputs.docker_address }} \
+          | gzip -c > image.tar.gz
+
+      - name: Upload to transfer.sh
+        run: |
+          UPLOAD_URL=$(curl -s -X POST --upload-file ./image.tar.gz https://transfer.sh/image.tar.gz)
+          echo "Uploaded to: $UPLOAD_URL"
